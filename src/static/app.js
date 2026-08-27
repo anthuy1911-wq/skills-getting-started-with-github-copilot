@@ -21,18 +21,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
         const participants = Array.isArray(details.participants) ? details.participants : [];
+        const mapQuery = encodeURIComponent(details.address || name);
+        const mapLink = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
         const participantsList = participants.length
           ? `<ul class="participant-list">${participants
-              .map(
-                (participant) => `
+              .map((participant) => {
+                const participantEmail = typeof participant === "object" && participant ? participant.email : participant;
+                const participantDetails = typeof participant === "object" && participant
+                  ? ` <span class="participant-meta">Class ${participant.student_class || "N/A"} • DOB ${participant.dob || "N/A"} • Interest ${participant.interest || "N/A"}</span>`
+                  : "";
+
+                return `
                   <li class="participant-row">
-                    <span class="participant-email">${participant}</span>
-                    <button type="button" class="participant-delete" data-activity="${name}" data-email="${participant}" aria-label="Remove ${participant} from ${name}">
+                    <div class="participant-info">
+                      <span class="participant-email">${participantEmail}</span>
+                      ${participantDetails}
+                    </div>
+                    <button type="button" class="participant-delete" data-activity="${name}" data-email="${participantEmail}" aria-label="Remove ${participantEmail} from ${name}">
                       🗑
                     </button>
                   </li>
-                `
-              )
+                `;
+              })
               .join("")}</ul>`
           : `<p class="no-participants">No participants yet.</p>`;
 
@@ -40,6 +50,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <p class="address-line">
+            <span class="location-icon" aria-hidden="true">📍</span>
+            <strong>Address:</strong>
+            <a href="${mapLink}" target="_blank" rel="noopener noreferrer">${details.address || "TBD"}</a>
+          </p>
+          <p><strong>Fee:</strong> $${details.fee ?? 0}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <div class="participants">
             <h5>Participants</h5>
@@ -99,11 +115,21 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
 
     const email = document.getElementById("email").value;
+    const studentClass = document.getElementById("student-class").value;
+    const dob = document.getElementById("dob").value;
+    const interest = document.getElementById("interest").value;
     const activity = document.getElementById("activity").value;
 
     try {
+      const params = new URLSearchParams({
+        email,
+        student_class: studentClass,
+        dob,
+        interest,
+      });
+
       const response = await fetch(
-        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+        `/activities/${encodeURIComponent(activity)}/signup?${params.toString()}`,
         {
           method: "POST",
         }
